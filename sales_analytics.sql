@@ -1,11 +1,32 @@
---DDL 
---1: CREATE DATABASE
+/******************************************************************************************
+ *  Sales Analytics Database
+ *  =====================================
+ *  A complete SQL Server solution for e-commerce sales analysis.
+ *
+ *  Features:
+ *    - Normalized relational schema with constraints and indexes
+ *    - Realistic sample data with seasonal trends and discounts
+ *    - Analytical views and business intelligence queries
+ *    - Revenue calculation: quantity * unit_price * (1 - discount_rate)
+ *
+ *  Author: Ali
+ *  Repository: https://github.com/ali-essam2002/sales-analytics-sql
+ ******************************************************************************************/
+
+-- =============================================================================
+-- 1. CREATE DATABASE
+-- =============================================================================
 CREATE DATABASE SalesAnalytics;
 GO
 
 USE SalesAnalytics;
 GO
--- 2: CREATE TABLES (DDL)
+
+-- =============================================================================
+-- 2. CREATE TABLES (DDL)
+-- =============================================================================
+
+-- Customers Table
 CREATE TABLE customers (
     customer_id INT           IDENTITY(1,1) PRIMARY KEY,
     name        NVARCHAR(100) NOT NULL,
@@ -14,6 +35,7 @@ CREATE TABLE customers (
     region      NVARCHAR(50)  NOT NULL
 );
 
+-- Products Table
 CREATE TABLE products (
     product_id INT            IDENTITY(1,1) PRIMARY KEY,
     name       NVARCHAR(100)  NOT NULL,
@@ -21,38 +43,41 @@ CREATE TABLE products (
     price      DECIMAL(10,2)  NOT NULL
 );
 
+-- Orders Table
 CREATE TABLE orders (
     order_id    INT           IDENTITY(1,1) PRIMARY KEY,
     customer_id INT           NOT NULL REFERENCES customers(customer_id),
     order_date  DATE          NOT NULL,
-    status      NVARCHAR(20)  NOT NULL   -- 'shipped','delivered','cancelled'
+    status      NVARCHAR(20)  NOT NULL   -- Values: 'shipped', 'delivered', 'cancelled'
 );
 
+-- Order Items Table (Line items with discount support)
 CREATE TABLE order_items (
     order_item_id INT           IDENTITY(1,1) PRIMARY KEY,
     order_id      INT           NOT NULL REFERENCES orders(order_id),
     product_id    INT           NOT NULL REFERENCES products(product_id),
     quantity      INT           NOT NULL DEFAULT 1,
     unit_price    DECIMAL(10,2) NOT NULL,
-    discount_rate DECIMAL(4,3)  NOT NULL DEFAULT 0.0  -- e.g. 0.10 = 10%
+    discount_rate DECIMAL(4,3)  NOT NULL DEFAULT 0.0   -- e.g., 0.100 = 10% discount
 );
 GO
- 
---   3: INDEXES
+
+-- =============================================================================
+-- 3. CREATE INDEXES (Performance Optimization)
+-- =============================================================================
+
 CREATE INDEX idx_orders_customer   ON orders(customer_id);
 CREATE INDEX idx_orders_date       ON orders(order_date);
 CREATE INDEX idx_orders_status     ON orders(status);
 CREATE INDEX idx_order_items_order ON order_items(order_id);
 CREATE INDEX idx_order_items_prod  ON order_items(product_id);
 GO
- 
---   4: SEED DATA
---   10 customers, 12 products, 32 orders across 14 months
---   Seasonal spikes in Nov/Dec, discounts, one cancelled order
---   Revenue = quantity * unit_price * (1 - discount_rate)
---   Completed = status IN ('shipped','delivered')
- 
 
+-- =============================================================================
+-- 4. SEED DATA
+-- =============================================================================
+
+-- Insert 10 Customers
 INSERT INTO customers (name, email, created_at, region) VALUES
   ('Alice Martin',  'alice@example.com',  '2023-01-10', 'North'),
   ('Bob Hassan',    'bob@example.com',    '2023-02-15', 'South'),
@@ -65,6 +90,7 @@ INSERT INTO customers (name, email, created_at, region) VALUES
   ('Ivan Osei',     'ivan@example.com',   '2023-09-09', 'North'),
   ('Julia Brown',   'julia@example.com',  '2023-10-01', 'South');
 
+-- Insert 12 Products
 INSERT INTO products (name, category, price) VALUES
   ('Laptop Pro 15',      'Electronics',  1200.00),
   ('Wireless Mouse',     'Electronics',    25.00),
@@ -79,13 +105,14 @@ INSERT INTO products (name, category, price) VALUES
   ('Monitor 27"',        'Electronics',   400.00),
   ('Ergonomic Keyboard', 'Electronics',    90.00);
 
+-- Insert 32 Orders (14 months of data with seasonal spikes)
 INSERT INTO orders (customer_id, order_date, status) VALUES
   (1,  '2024-01-05', 'delivered'),   -- 1
   (2,  '2024-01-18', 'shipped'),     -- 2
   (3,  '2024-02-02', 'delivered'),   -- 3
   (4,  '2024-02-20', 'delivered'),   -- 4
   (5,  '2024-03-08', 'shipped'),     -- 5
-  (6,  '2024-03-25', 'cancelled'),   -- 6  cancelled order
+  (6,  '2024-03-25', 'cancelled'),   -- 6  Cancelled order example
   (7,  '2024-04-10', 'delivered'),   -- 7
   (8,  '2024-04-28', 'delivered'),   -- 8
   (1,  '2024-05-03', 'shipped'),     -- 9
@@ -100,19 +127,20 @@ INSERT INTO orders (customer_id, order_date, status) VALUES
   (8,  '2024-09-30', 'delivered'),   -- 18
   (9,  '2024-10-06', 'delivered'),   -- 19
   (10, '2024-10-21', 'shipped'),     -- 20
-  (1,  '2024-11-01', 'delivered'),   -- 21  (November spike)
+  (1,  '2024-11-01', 'delivered'),   -- 21  November spike
   (2,  '2024-11-05', 'delivered'),   -- 22
   (3,  '2024-11-10', 'shipped'),     -- 23
   (4,  '2024-11-15', 'delivered'),   -- 24
   (5,  '2024-11-22', 'delivered'),   -- 25
-  (6,  '2024-12-01', 'delivered'),   -- 26  (December spike)
+  (6,  '2024-12-01', 'delivered'),   -- 26  December spike
   (7,  '2024-12-05', 'shipped'),     -- 27
   (8,  '2024-12-10', 'delivered'),   -- 28
   (9,  '2024-12-18', 'delivered'),   -- 29
   (10, '2024-12-26', 'shipped'),     -- 30
-  (1,  '2025-01-08', 'delivered'),   -- 31  (14th month)
+  (1,  '2025-01-08', 'delivered'),   -- 31
   (2,  '2025-01-20', 'shipped');     -- 32
 
+-- Insert Order Items
 INSERT INTO order_items (order_id, product_id, quantity, unit_price, discount_rate) VALUES
   (1,  1, 1, 1200.00, 0.000),
   (1,  2, 1,   25.00, 0.000),
@@ -164,92 +192,90 @@ INSERT INTO order_items (order_id, product_id, quantity, unit_price, discount_ra
   (32, 3, 2,   45.00, 0.000);
 GO
 
+-- =============================================================================
+-- 5. ANALYTICAL VIEWS
+-- =============================================================================
 
-
-
-
-
+-- View 1: Monthly Revenue Summary
+CREATE OR ALTER VIEW monthly_revenue AS
+SELECT 
+    MONTH(order_date) AS monthly,
+    YEAR(order_date)  AS yearly,
+    SUM(quantity * unit_price * (1 - discount_rate)) AS revenue
+FROM orders o 
+INNER JOIN order_items oi ON o.order_id = oi.order_id
+WHERE o.status IN ('shipped', 'delivered')
+GROUP BY MONTH(order_date), YEAR(order_date);
 GO
-create or alter view monthly_revenue as --1 view
-select month(order_date)as monthly, year(order_date)as yearly ,sum(quantity*unit_price*(1-discount_rate))as revenue
-from orders o inner join order_items oi 
-on o.order_id =oi.order_id
-group by month(order_date),year(order_date),status
-having status in ('shipped','delivered' );
+
+-- View 2: Active Customers (90+ days between first and last order)
+CREATE OR ALTER VIEW active_90day AS
+SELECT 
+    c.customer_id,
+    c.name,
+    MIN(o.order_date) AS first_order_date,
+    MAX(o.order_date) AS last_order_date,
+    DATEDIFF(DAY, MIN(o.order_date), MAX(o.order_date)) AS active_days
+FROM customers c 
+JOIN orders o ON c.customer_id = o.customer_id
+GROUP BY c.customer_id, c.name
+HAVING DATEDIFF(DAY, MIN(o.order_date), MAX(o.order_date)) >= 90;
 GO
---run view
-select * from monthly_revenue
-order by monthly
 
-
-
-GO
-create view active_90day as --2 view
-SELECT c.customer_id,name,MIN(order_date) AS first_order_date,MAX(order_date) AS last_order_date,
-DATEDIFF(DAY, MIN(order_date), MAX(order_date)) AS active_days
-FROM Customers c JOIN Orders o
-ON c.customer_id = o.customer_id
-GROUP BY c.customer_id,name
-HAVING DATEDIFF(DAY, MIN(order_date), MAX(order_date)) >= 90;
-GO
---run view 
-select * from active_90day
-order by customer_id
-
-
-GO
-CREATE OR ALTER VIEW vw_top_selling_products AS --3 view
-SELECT p.product_id, p.name, SUM(i.quantity * i.unit_price * (1 - i.discount_rate)) AS total_sales
+-- View 3: Top Selling Products by Revenue
+CREATE OR ALTER VIEW vw_top_selling_products AS
+SELECT 
+    p.product_id,
+    p.name,
+    SUM(i.quantity * i.unit_price * (1 - i.discount_rate)) AS total_sales
 FROM products p 
 INNER JOIN order_items i ON p.product_id = i.product_id
 GROUP BY p.product_id, p.name;
 GO
---run 
-SELECT * FROM vw_top_selling_products
-order by total_sales DESC; 
 
+-- =============================================================================
+-- 6. ADVANCED ANALYTICAL QUERIES
+-- =============================================================================
 
-
---- nested query
-SELECT *
-FROM (
- SELECT 
- c.customer_id,
- c.name,
- SUM(oi.quantity * oi.unit_price * (1 - oi.discount_rate)) AS total_spent
- FROM customers c
- JOIN orders o 
- ON c.customer_id = o.customer_id
- JOIN order_items oi 
- ON o.order_id = oi.order_id
- WHERE o.status IN ('shipped','delivered')
- GROUP BY c.customer_id, c.name
-) AS customer_spending
-WHERE total_spent > 2000
+-- High-Value Customers (Total spent > 2000)
+SELECT 
+    c.customer_id,
+    c.name,
+    SUM(oi.quantity * oi.unit_price * (1 - oi.discount_rate)) AS total_spent
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+JOIN order_items oi ON o.order_id = oi.order_id
+WHERE o.status IN ('shipped', 'delivered')
+GROUP BY c.customer_id, c.name
+HAVING SUM(oi.quantity * oi.unit_price * (1 - oi.discount_rate)) > 2000
 ORDER BY total_spent DESC;
 
---- 1. Monthly Revenue with Growth
+-- Monthly Revenue with Month-over-Month Growth
 WITH monthly_totals AS (
     SELECT 
         DATEFROMPARTS(YEAR(o.order_date), MONTH(o.order_date), 1) AS month,
         SUM(oi.quantity * oi.unit_price * (1 - oi.discount_rate)) AS revenue
-    FROM orders o JOIN order_items oi 
-    ON o.order_id = oi.order_id
+    FROM orders o 
+    JOIN order_items oi ON o.order_id = oi.order_id
+    WHERE o.status IN ('shipped', 'delivered')
     GROUP BY DATEFROMPARTS(YEAR(o.order_date), MONTH(o.order_date), 1)
 )
-SELECT month,revenue,
+SELECT 
+    month,
+    revenue,
     LAG(revenue) OVER (ORDER BY month) AS prev_month_revenue,
-    ROUND((revenue - LAG(revenue) OVER (ORDER BY month)) / 
-    NULLIF(LAG(revenue) OVER (ORDER BY month), 0) * 100, 2) AS mom_growth_pct
+    ROUND(
+        (revenue - LAG(revenue) OVER (ORDER BY month)) / 
+        NULLIF(LAG(revenue) OVER (ORDER BY month), 0) * 100, 
+    2) AS mom_growth_pct
 FROM monthly_totals
 ORDER BY month;
 
-
-----2. Category Performance (L12M)
+-- Category Performance (Last 12 Months)
 SELECT 
     p.category,
     COUNT(DISTINCT o.order_id) AS orders,
-    SUM(oi.quantity) AS items,
+    SUM(oi.quantity) AS items_sold,
     SUM(oi.quantity * oi.unit_price * (1 - oi.discount_rate)) AS revenue,
     ROUND(
         SUM(oi.quantity * oi.unit_price * (1 - oi.discount_rate)) / 
@@ -257,43 +283,47 @@ SELECT
 FROM orders o
 JOIN order_items oi ON o.order_id = oi.order_id
 JOIN products p ON oi.product_id = p.product_id
-WHERE o.order_date >= DATEADD(month, -12, GETDATE())
+WHERE o.order_date >= DATEADD(MONTH, -12, GETDATE())
 GROUP BY p.category
 ORDER BY revenue DESC;
 
-
----3. Regional Leaderboard
+-- Regional Leaderboard with Top Product per Region
 WITH regional_stats AS (
     SELECT 
         c.region,
         COUNT(DISTINCT c.customer_id) AS customers,
         SUM(oi.quantity * oi.unit_price * (1 - oi.discount_rate)) AS revenue
     FROM customers c
-    JOIN orders o 
-    ON c.customer_id = o.customer_id
-    JOIN order_items oi 
-    ON o.order_id = oi.order_id
+    JOIN orders o ON c.customer_id = o.customer_id
+    JOIN order_items oi ON o.order_id = oi.order_id
+    WHERE o.status IN ('shipped', 'delivered')
     GROUP BY c.region
-),product_revenue_by_region AS (
-    SELECT c.region,p.name AS product_name,
-    SUM(oi.quantity * oi.unit_price * (1 - oi.discount_rate)) AS product_revenue
+),
+product_revenue_by_region AS (
+    SELECT 
+        c.region,
+        p.name AS product_name,
+        SUM(oi.quantity * oi.unit_price * (1 - oi.discount_rate)) AS product_revenue
     FROM customers c
-    JOIN orders o
-     ON c.customer_id = o.customer_id
-    JOIN order_items oi 
-    ON o.order_id = oi.order_id
-    JOIN products p 
-    ON oi.product_id = p.product_id
+    JOIN orders o ON c.customer_id = o.customer_id
+    JOIN order_items oi ON o.order_id = oi.order_id
+    JOIN products p ON oi.product_id = p.product_id
+    WHERE o.status IN ('shipped', 'delivered')
     GROUP BY c.region, p.name
 ),
 top_product_per_region AS (
-    SELECT region,product_name,ROW_NUMBER() OVER (PARTITION BY region ORDER BY product_revenue DESC) AS rn
+    SELECT 
+        region,
+        product_name,
+        ROW_NUMBER() OVER (PARTITION BY region ORDER BY product_revenue DESC) AS rn
     FROM product_revenue_by_region
 )
-SELECT rs.region,rs.customers,rs.revenue,tp.product_name AS top_product_by_revenue
+SELECT 
+    rs.region,
+    rs.customers,
+    rs.revenue,
+    tp.product_name AS top_product_by_revenue
 FROM regional_stats rs
 LEFT JOIN top_product_per_region tp 
     ON rs.region = tp.region AND tp.rn = 1
 ORDER BY rs.revenue DESC;
-
-
