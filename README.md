@@ -46,7 +46,7 @@ sales-analytics-sql/
 ├── sales_analytics.sql     # Main SQL script (DDL + DML + Views + Queries)
 └── README.md
 ```
-### Quick Test Queries:
+## 📁 Quick Test Queries:
 
 ```sql
 -- View monthly revenue
